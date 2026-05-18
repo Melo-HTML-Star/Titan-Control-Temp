@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Titan Temp Control</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;}
+#nav{background:#1a1a2e;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+#nav-left{display:flex;flex-direction:column;}
+#nav h1{font-size:16px;font-weight:700;color:#fff;letter-spacing:0.02em;}
+#nav .sub{font-size:10px;color:#94a3b8;margin-top:1px;letter-spacing:0.05em;text-transform:uppercase;}
+#nav .nd{font-size:11px;color:#94a3b8;}
+#stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:10px;background:#fff;border-bottom:1px solid #e4e7ec;}
+.sc{background:#f8fafc;border-radius:10px;padding:10px;text-align:center;}
+.sv{font-size:22px;font-weight:700;color:#111;}
+.sl{font-size:11px;color:#6b7280;margin-top:2px;}
+.sv-u{color:#dc2626;}.sv-p{color:#ea580c;}.sv-s{color:#7c3aed;}
+#tabs{display:flex;background:#fff;border-bottom:1px solid #e4e7ec;position:sticky;top:52px;z-index:90;}
+.tab{flex:1;padding:11px 0;font-size:12px;font-weight:600;text-align:center;border:none;background:transparent;color:#6b7280;border-bottom:3px solid transparent;cursor:pointer;}
+.tab.on{color:#1a1a2e;border-bottom-color:#1a1a2e;}
+.pg{display:none;padding:12px;}
+.pg.on{display:block;}
+.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.clabel{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+
+/* TYPE ROW — now 3 types */
+#trow{display:flex;background:#f0f4f8;border-radius:10px;padding:3px;margin-bottom:12px;gap:3px;}
+.tbtn{flex:1;padding:8px 4px;border-radius:8px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;text-align:center;}
+.tbtn.on{background:#fff;color:#1a1a2e;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+.tbtn.on.t-repair{color:#1a56db;}
+.tbtn.on.t-payment{color:#ea580c;}
+.tbtn.on.t-supply{color:#7c3aed;}
+
+textarea{width:100%;border:1.5px solid #e4e7ec;border-radius:10px;padding:10px;font-size:14px;font-family:inherit;resize:none;height:80px;color:#111;}
+textarea:focus{outline:none;border-color:#1a1a2e;}
+.field-row{display:flex;gap:8px;margin:10px 0;}
+.field-block{flex:1;}
+.field-label{font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;}
+select,input[type=date]{width:100%;border:1.5px solid #e4e7ec;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:#111;background:#fff;}
+select:focus,input[type=date]:focus{outline:none;border-color:#1a1a2e;}
+#urg-row{display:flex;align-items:center;gap:10px;background:#f8fafc;border-radius:10px;padding:10px 12px;margin-bottom:10px;cursor:pointer;border:1.5px solid #e4e7ec;}
+#urg-row.on{background:#fef2f2;border-color:#fca5a5;}
+#urg-chk{width:18px;height:18px;accent-color:#dc2626;cursor:pointer;flex-shrink:0;}
+.urg-txt{font-size:13px;font-weight:600;color:#111;}
+.urg-sub{font-size:11px;color:#6b7280;margin-top:1px;}
+#abtn{width:100%;padding:14px;background:#1a1a2e;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;}
+#abtn:active{opacity:.85;transform:scale(0.98);}
+#abtn:disabled{opacity:.5;}
+
+/* notify banner */
+.notify-banner{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:12px;color:#166534;line-height:1.5;}
+.notify-banner strong{display:block;margin-bottom:2px;font-size:13px;}
+
+.ex-btn{width:100%;text-align:left;background:#f8fafc;border:1px solid #e4e7ec;border-radius:10px;padding:11px 12px;font-size:13px;color:#374151;cursor:pointer;margin-bottom:8px;line-height:1.4;}
+
+/* Job cards */
+.jcard{background:#fff;border-radius:14px;padding:13px 13px 13px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #e4e7ec;cursor:pointer;}
+.jcard.jt-repair{border-left-color:#1a56db;}
+.jcard.jt-payment{border-left-color:#ea580c;}
+.jcard.jt-supply{border-left-color:#7c3aed;}
+.jcard.is-urgent{border-top:3px solid #dc2626;}
+.jr1{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.jname{font-size:14px;font-weight:700;color:#111;flex:1;}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.bt{background:#eff6ff;color:#1a56db;}
+.bp{background:#fff7ed;color:#ea580c;}
+.bs{background:#f5f3ff;color:#7c3aed;}
+.bu{background:#fef2f2;color:#dc2626;}
+.jaddr{font-size:12px;color:#6b7280;margin-bottom:3px;}
+.jmeta{font-size:12px;color:#9ca3af;}
+.nojobs{text-align:center;color:#d1d5db;font-size:14px;padding:40px 0;}
+.frow{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.fbtn{padding:7px 12px;border-radius:20px;border:1px solid #e4e7ec;background:#fff;font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;}
+.fbtn.on{background:#1a1a2e;color:#fff;border-color:#1a1a2e;}
+
+/* Calendar */
+#cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+#cal-nav h2{font-size:16px;font-weight:700;color:#111;}
+.cnb{padding:6px 14px;border:1px solid #e4e7ec;border-radius:8px;background:#fff;font-size:14px;font-weight:700;color:#374151;cursor:pointer;}
+#cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.clbl{text-align:center;font-size:10px;font-weight:700;color:#9ca3af;padding:4px 0 6px;text-transform:uppercase;}
+.ccell{min-height:60px;background:#fff;border-radius:8px;padding:4px;border:1px solid #f0f0f0;}
+.ccell.tod{border-color:#1a1a2e;background:#f8f9ff;}
+.ccell.oth{background:#fafafa;opacity:.5;}
+.cdn{font-size:11px;font-weight:700;color:#374151;margin-bottom:2px;}
+.ccell.tod .cdn{color:#1a1a2e;}
+.cev{font-size:9px;border-radius:3px;padding:1px 4px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;font-weight:600;}
+.ce-r{background:#dbeafe;color:#1e40af;}
+.ce-p{background:#ffedd5;color:#9a3412;}
+.ce-s{background:#ede9fe;color:#5b21b6;}
+.ce-u{outline:1.5px solid #dc2626;}
+.cmore{font-size:9px;color:#9ca3af;}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;max-height:85vh;overflow-y:auto;}
+.mhandle{width:36px;height:4px;background:#e4e7ec;border-radius:2px;margin:0 auto 16px;}
+.mtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.mname{font-size:18px;font-weight:700;color:#111;}
+.mcls{background:#f0f4f8;border:none;border-radius:20px;padding:5px 14px;font-size:13px;color:#6b7280;cursor:pointer;}
+.mbadges{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.dgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.drow{background:#f8fafc;border-radius:10px;padding:9px 12px;}
+.drow.full{grid-column:1/-1;}
+.dk{font-size:11px;color:#6b7280;font-weight:600;margin-bottom:3px;}
+.dv{font-size:14px;color:#111;font-weight:600;}
+.delbtn{width:100%;margin-top:14px;padding:13px;background:#fef2f2;color:#dc2626;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;}
+
+/* Notify info card */
+.info-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.info-title{font-size:14px;font-weight:700;color:#111;margin-bottom:4px;}
+.info-sub{font-size:12px;color:#6b7280;line-height:1.5;}
+.info-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;}
+.info-row:last-child{border-bottom:none;}
+.info-icon{font-size:20px;width:32px;text-align:center;}
+.info-detail{flex:1;}
+.info-label{font-size:12px;font-weight:600;color:#6b7280;}
+.info-val{font-size:14px;font-weight:600;color:#111;}
+.info-note{font-size:11px;color:#9ca3af;margin-top:1px;}
+.coming-badge{font-size:11px;background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:20px;font-weight:600;}
+
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="nav">
+  <div id="nav-left">
+    <h1>🌡️ Titan Temp Control</h1>
+    <div class="sub">HVAC Scheduling</div>
+  </div>
+  <div class="nd" id="navd"></div>
+</div>
+
+<div id="stats">
+  <div class="sc"><div class="sv" id="st1">0</div><div class="sl">Total jobs</div></div>
+  <div class="sc"><div class="sv sv-u" id="st2">0</div><div class="sl">Urgent</div></div>
+  <div class="sc"><div class="sv" id="st3">0</div><div class="sl">Repairs</div></div>
+  <div class="sc"><div class="sv sv-s" id="st4">0</div><div class="sl">Supply runs</div></div>
+</div>
+
+<div id="tabs">
+  <button class="tab on" onclick="goTab('add',this)">➕ Add</button>
+  <button class="tab" onclick="goTab('jobs',this)">📋 Jobs</button>
+  <button class="tab" onclick="goTab('cal',this)">📅 Calendar</button>
+  <button class="tab" onclick="goTab('info',this)">ℹ️ Info</button>
+</div>
+
+<!-- ADD -->
+<div class="pg on" id="pg-add">
+  <div class="card" style="margin-top:4px;">
+    <div class="clabel">New job</div>
+    <div id="trow">
+      <button class="tbtn on t-repair" id="btn-repair" onclick="setType('repair')">🔧 Repair</button>
+      <button class="tbtn t-payment" id="btn-payment" onclick="setType('payment')">💰 Payment</button>
+      <button class="tbtn t-supply" id="btn-supply" onclick="setType('supply')">🚚 Supply</button>
+    </div>
+    <textarea id="jinput" placeholder="e.g. Mike at 44 Oak St, AC making loud noise"></textarea>
+    <div class="field-row">
+      <div class="field-block"><div class="field-label">Date</div><input type="date" id="jdate"></div>
+      <div class="field-block"><div class="field-label">Time slot</div>
+        <select id="jslot"><option>8:00 AM</option><option>9:30 AM</option><option>11:00 AM</option><option>1:00 PM</option><option>2:30 PM</option><option>4:00 PM</option></select>
+      </div>
+    </div>
+    <div id="urg-row" onclick="toggleUrgent()">
+      <input type="checkbox" id="urg-chk" onclick="event.stopPropagation();toggleUrgent()">
+      <div>
+        <div class="urg-txt">⚠️ Mark as urgent</div>
+        <div class="urg-sub">Job is within 2 days or needs immediate attention</div>
+      </div>
+    </div>
+    <div class="field-row" id="tech-row">
+      <div class="field-block"><div class="field-label">Technician</div>
+        <select id="jtech"><option>Marcus R.</option><option>Jess L.</option><option>Dario M.</option><option>Priya T.</option></select>
+      </div>
+    </div>
+    <div id="supply-fields" style="display:none;">
+      <div class="field-row">
+        <div class="field-block"><div class="field-label">Parts / Materials needed</div>
+          <select id="jsupplier"><option>Ferguson HVAC Supply</option><option>Johnstone Supply</option><option>Home Depot</option><option>Grainger</option><option>Local supplier</option><option>Other</option></select>
+        </div>
+      </div>
+    </div>
+    <button id="abtn" onclick="handleAdd()">Schedule Job</button>
+    <div class="notify-banner" id="notify-note" style="display:none;">
+      📲 A notification will be sent to <strong>(413) 557-4033</strong> and <strong>ttcllc1008@gmail.com</strong> when this is set up with Twilio + EmailJS.
+    </div>
+  </div>
+  <div class="card">
+    <div class="clabel">Tap to try an example</div>
+    <button class="ex-btn" onclick="tryEx(0)">🔧 "Mrs. Johnson at 22 Elm, furnace making noise, book next week"</button>
+    <button class="ex-btn" onclick="tryEx(1)">⚠️ "Dave at 88 Pine, AC out, needs repair tomorrow" — urgent</button>
+    <button class="ex-btn" onclick="tryEx(2)">💰 "Martinez ready to pay $380 balance, can do Friday"</button>
+    <button class="ex-btn" onclick="tryEx(3)">🚚 "Need to pick up capacitors and refrigerant from Ferguson for the Oak St job"</button>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div class="pg" id="pg-jobs">
+  <div class="frow" style="margin-top:4px;">
+    <button class="fbtn on" onclick="setFilter('all',this)">All</button>
+    <button class="fbtn" onclick="setFilter('repair',this)">Repairs</button>
+    <button class="fbtn" onclick="setFilter('payment',this)">Payments</button>
+    <button class="fbtn" onclick="setFilter('supply',this)">Supply</button>
+    <button class="fbtn" onclick="setFilter('urgent',this)">Urgent</button>
+  </div>
+  <div id="jlist"><div class="nojobs">No jobs yet — add one!</div></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="pg" id="pg-cal">
+  <div class="card" style="padding:10px;margin-top:4px;">
+    <div id="cal-nav">
+      <button class="cnb" onclick="chMon(-1)">‹</button>
+      <h2 id="caltitle"></h2>
+      <button class="cnb" onclick="chMon(1)">›</button>
+    </div>
+    <div id="cgrid"></div>
+  </div>
+</div>
+
+<!-- INFO -->
+<div class="pg" id="pg-info">
+  <div style="height:4px;"></div>
+  <div class="info-card">
+    <div class="info-title">🌡️ Titan Temp Control</div>
+    <div class="info-sub">Business contact info & notification status</div>
+  </div>
+  <div class="info-card">
+    <div class="clabel">Contact Info</div>
+    <div class="info-row">
+      <div class="info-icon">📱</div>
+      <div class="info-detail">
+        <div class="info-label">Business Phone</div>
+        <div class="info-val">(413) 557-4033</div>
+        <div class="info-note">Used for customer calls & texts</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">📧</div>
+      <div class="info-detail">
+        <div class="info-label">Business Email</div>
+        <div class="info-val">ttcllc1008@gmail.com</div>
+        <div class="info-note">Booking confirmations & alerts</div>
+      </div>
+    </div>
+  </div>
+  <div class="info-card">
+    <div class="clabel">Notification Features</div>
+    <div class="info-row">
+      <div class="info-icon">💬</div>
+      <div class="info-detail">
+        <div class="info-label">Text notifications <span class="coming-badge">Coming soon</span></div>
+        <div class="info-note">Auto-text to (413) 557-4033 on new bookings via Twilio — ~$15/mo</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">📨</div>
+      <div class="info-detail">
+        <div class="info-label">Email notifications <span class="coming-badge">Coming soon</span></div>
+        <div class="info-note">Auto-email to ttcllc1008@gmail.com on new bookings via EmailJS — free plan</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon">🌐</div>
+      <div class="info-detail">
+        <div class="info-label">Online booking form <span class="coming-badge">Coming soon</span></div>
+        <div class="info-note">Customer-facing booking page — waiting on website URL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalbg" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtop">
+      <div class="mname" id="mname"></div>
+      <button class="mcls" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div class="mbadges" id="mbadges"></div>
+    <div class="dgrid" id="mgrid"></div>
+    <button class="delbtn" onclick="delJob()">🗑 Remove Job</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BIZ={name:'Titan Temp Control',phone:'(413) 557-4033',email:'ttcllc1008@gmail.com'};
+let jobs=[],jtype='repair',selId=null,jfilter='all',isUrgent=false,calY,calM;
+const now=new Date();
+calY=now.getFullYear();calM=now.getMonth();
+const todayStr=now.toISOString().split('T')[0];
+document.getElementById('jdate').value=todayStr;
+document.getElementById('jdate').min=todayStr;
+document.getElementById('navd').textContent=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+document.getElementById('jdate').addEventListener('change',function(){
+  const sel=new Date(this.value+'T00:00:00');
+  const diff=(sel-now)/(1000*60*60*24);
+  if(diff<=2)setUrgent(true);
+});
+
+renderCal();updateStats();
+
+function goTab(p,btn){
+  document.querySelectorAll('.pg').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));
+  document.getElementById('pg-'+p).classList.add('on');
+  btn.classList.add('on');
+  if(p==='jobs')renderJobs();
+  if(p==='cal')renderCal();
+}
+
+function setType(t){
+  jtype=t;
+  ['repair','payment','supply'].forEach(x=>{
+    document.getElementById('btn-'+x).classList.toggle('on',x===t);
+  });
+  // show/hide supply fields
+  document.getElementById('supply-fields').style.display=t==='supply'?'block':'none';
+  document.getElementById('tech-row').style.display=t==='payment'?'none':'flex';
+  const hints={repair:'e.g. Mike at 44 Oak St, AC making loud noise',payment:'e.g. Mrs. Chen ready to pay her $320 balance',supply:'e.g. Need capacitors and refrigerant from Ferguson for the Oak St job'};
+  document.getElementById('jinput').placeholder=hints[t];
+}
+
+function setUrgent(val){
+  isUrgent=val;
+  document.getElementById('urg-chk').checked=val;
+  document.getElementById('urg-row').classList.toggle('on',val);
+}
+function toggleUrgent(){setUrgent(!isUrgent);}
+
+function tryEx(i){
+  const exs=[
+    {t:"Mrs. Johnson at 22 Elm, furnace making noise",type:'repair',urgent:false,days:7},
+    {t:"Dave at 88 Pine, AC out, needs repair tomorrow",type:'repair',urgent:true,days:1},
+    {t:"Martinez ready to pay $380 balance, can do Friday",type:'payment',urgent:false,days:3},
+    {t:"Need to pick up capacitors and refrigerant from Ferguson for the Oak St job",type:'supply',urgent:false,days:1},
+  ];
+  const e=exs[i];
+  setType(e.type);
+  document.getElementById('jinput').value=e.t;
+  const d=new Date(now);d.setDate(d.getDate()+e.days);
+  document.getElementById('jdate').value=d.toISOString().split('T')[0];
+  setUrgent(e.urgent);
+}
+
+function parse(text){
+  let customer='Titan Temp Control';
+  if(jtype!=='supply'){
+    const nm=text.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/);if(nm)customer=nm[1];
+    const fr=text.match(/(?:from|call from)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i);if(fr)customer=fr[1];
+  }
+  let address='';
+  const am=text.match(/\d+\s+[A-Za-z]+(?:\s+(?:St|Ave|Rd|Dr|Blvd|Ln|Ct|Way|Pl|Street|Avenue|Road|Drive|Lane|Court|Boulevard))?/i);if(am)address=am[0];
+  let amount=0;const amtm=text.match(/\$(\d+)/);if(amtm)amount=parseInt(amtm[1]);
+  const lo=text.toLowerCase();
+  let issue=jtype==='payment'?'Payment pickup':jtype==='supply'?'Supply / parts run':'Service call';
+  if(jtype==='repair'){
+    if(lo.includes('ac')||lo.includes('air'))issue='AC issue';
+    else if(lo.includes('heat')||lo.includes('furnace'))issue='Heating issue';
+    else if(lo.includes('filter'))issue='Filter replacement';
+    else if(lo.includes('mainten')||lo.includes('tune'))issue='Maintenance';
+    else if(lo.includes('leak'))issue='Refrigerant leak';
+    else if(lo.includes('noise')||lo.includes('loud'))issue='Unusual noise';
+    else if(lo.includes('thermostat'))issue='Thermostat issue';
+  }
+  if(jtype==='supply'){
+    const parts=[];
+    if(lo.includes('capacitor'))parts.push('Capacitor');
+    if(lo.includes('refrigerant')||lo.includes('freon'))parts.push('Refrigerant');
+    if(lo.includes('filter'))parts.push('Filters');
+    if(lo.includes('belt'))parts.push('Belts');
+    if(lo.includes('contactor'))parts.push('Contactor');
+    if(lo.includes('thermostat'))parts.push('Thermostat');
+    if(parts.length)issue='Parts: '+parts.join(', ');
+  }
+  return{customer,address,amount,issue};
+}
+
+function handleAdd(){
+  const text=document.getElementById('jinput').value.trim();
+  const dateVal=document.getElementById('jdate').value;
+  if(!text){showToast('Please describe the job first');return;}
+  if(!dateVal){showToast('Please pick a date');return;}
+  const btn=document.getElementById('abtn');
+  btn.textContent='Scheduling...';btn.disabled=true;
+  setTimeout(()=>{
+    const x=parse(text);
+    const dateObj=new Date(dateVal+'T00:00:00');
+    const supplier=jtype==='supply'?document.getElementById('jsupplier').value:'';
+    const job={
+      id:Date.now(),type:jtype,
+      customer:jtype==='supply'?supplier:x.customer,
+      address:x.address,issue:x.issue,
+      urgent:isUrgent,amount:x.amount,notes:text,
+      tech:jtype==='payment'?'':document.getElementById('jtech').value,
+      slot:document.getElementById('jslot').value,
+      supplier,dateObj,dateKey:toKey(dateObj)
+    };
+    jobs.push(job);
+    document.getElementById('jinput').value='';
+    document.getElementById('jdate').value=todayStr;
+    setUrgent(false);
+    updateStats();renderCal();renderJobs();
+    showModal(job);
+    const msg=jtype==='supply'?'🚚 Supply run scheduled!':job.urgent?'⚠️ Urgent job scheduled!':'✅ Job scheduled!';
+    showToast(msg);
+    btn.textContent='Schedule Job';btn.disabled=false;
+  },400);
+}
+
+function toKey(d){return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function fmtD(d){return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+
+function setFilter(f,btn){
+  jfilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');renderJobs();
+}
+
+function renderJobs(){
+  const list=document.getElementById('jlist');
+  let f=jobs.slice().reverse();
+  if(jfilter==='repair')f=f.filter(j=>j.type==='repair');
+  else if(jfilter==='payment')f=f.filter(j=>j.type==='payment');
+  else if(jfilter==='supply')f=f.filter(j=>j.type==='supply');
+  else if(jfilter==='urgent')f=f.filter(j=>j.urgent);
+  if(!f.length){list.innerHTML='<div class="nojobs">No jobs here yet.</div>';return;}
+  list.innerHTML='';
+  f.forEach(j=>{
+    const d=document.createElement('div');
+    d.className='jcard jt-'+j.type+(j.urgent?' is-urgent':'');
+    const typeLabels={repair:'<span class="badge bt">Repair</span>',payment:'<span class="badge bp">Payment</span>',supply:'<span class="badge bs">Supply</span>'};
+    const ub=j.urgent?'<span class="badge bu">Urgent</span>':'';
+    d.innerHTML=`<div class="jr1"><span class="jname">${j.customer}</span>${typeLabels[j.type]}${ub}</div><div class="jaddr">${j.address||j.issue}</div><div class="jmeta">${fmtD(j.dateObj)} · ${j.slot}${j.tech?' · '+j.tech:''}</div>`;
+    d.onclick=()=>showModal(j);list.appendChild(d);
+  });
+}
+
+function updateStats(){
+  document.getElementById('st1').textContent=jobs.length;
+  document.getElementById('st2').textContent=jobs.filter(j=>j.urgent).length;
+  document.getElementById('st3').textContent=jobs.filter(j=>j.type==='repair').length;
+  document.getElementById('st4').textContent=jobs.filter(j=>j.type==='supply').length;
+}
+
+function chMon(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCal();}
+function renderCal(){
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  document.getElementById('caltitle').textContent=months[calM]+' '+calY;
+  const grid=document.getElementById('cgrid');grid.innerHTML='';
+  ['S','M','T','W','T','F','S'].forEach(l=>{const e=document.createElement('div');e.className='clbl';e.textContent=l;grid.appendChild(e);});
+  const first=new Date(calY,calM,1).getDay(),dim=new Date(calY,calM+1,0).getDate(),prev=new Date(calY,calM,0).getDate();
+  for(let i=first-1;i>=0;i--)grid.appendChild(mkCell(new Date(calY,calM-1,prev-i),true));
+  for(let d=1;d<=dim;d++)grid.appendChild(mkCell(new Date(calY,calM,d),false));
+  const tot=first+dim,rem=tot%7===0?0:7-(tot%7);
+  for(let d=1;d<=rem;d++)grid.appendChild(mkCell(new Date(calY,calM+1,d),true));
+}
+function mkCell(date,other){
+  const c=document.createElement('div');
+  c.className='ccell'+(other?' oth':'')+(sameDay(date,now)?' tod':'');
+  const dn=document.createElement('div');dn.className='cdn';dn.textContent=date.getDate();c.appendChild(dn);
+  const key=toKey(date),dj=jobs.filter(j=>j.dateKey===key);
+  dj.slice(0,2).forEach(j=>{
+    const ev=document.createElement('div');
+    const tc=j.type==='payment'?'ce-p':j.type==='supply'?'ce-s':'ce-r';
+    ev.className='cev '+tc+(j.urgent?' ce-u':'');
+    ev.textContent=j.customer.split(' ')[0];
+    ev.onclick=e=>{e.stopPropagation();showModal(j);};
+    c.appendChild(ev);
+  });
+  if(dj.length>2){const m=document.createElement('div');m.className='cmore';m.textContent='+'+(dj.length-2)+' more';c.appendChild(m);}
+  return c;
+}
+
+function showModal(j){
+  selId=j.id;
+  document.getElementById('mname').textContent=j.customer;
+  const typeLabels={repair:'<span class="badge bt">Repair</span>',payment:'<span class="badge bp">Payment</span>',supply:'<span class="badge bs">Supply Run</span>'};
+  const ub=j.urgent?'<span class="badge bu">Urgent</span>':'';
+  document.getElementById('mbadges').innerHTML=typeLabels[j.type]+ub;
+  const rows=[
+    ['Date',fmtD(j.dateObj),false],
+    ['Time',j.slot,false],
+    j.tech?['Technician',j.tech,false]:null,
+    ['Issue / Details',j.issue,false],
+    j.address?['Address',j.address,false]:null,
+    j.supplier?['Supplier',j.supplier,false]:null,
+    j.amount?['Amount due','$'+j.amount,false]:null,
+    ['Notes',j.notes,true]
+  ].filter(Boolean);
+  document.getElementById('mgrid').innerHTML=rows.map(([k,v,f])=>`<div class="drow${f?' full':''}"><div class="dk">${k}</div><div class="dv">${v}</div></div>`).join('');
+  document.getElementById('modalbg').classList.add('open');
+}
+function closeModal(){document.getElementById('modalbg').classList.remove('open');}
+function bgClose(e){if(e.target===document.getElementById('modalbg'))closeModal();}
+function delJob(){jobs=jobs.filter(j=>j.id!==selId);closeModal();updateStats();renderCal();renderJobs();showToast('Job removed');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+</body>
+</html>
